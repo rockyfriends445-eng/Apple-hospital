@@ -1,0 +1,40 @@
+import os
+import hashlib
+
+# A mock database of 'malicious' file hashes (for demonstration)
+MALWARE_SIGNATURES = [
+    "5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8", # Example hash
+]
+
+def calculate_sha256(file_path):
+    """Generates a SHA-256 hash for a given file."""
+    sha256_hash = hashlib.sha256()
+    try:
+        with open(file_path, "rb") as f:
+            # Read file in chunks to handle large files efficiently
+            for byte_block in iter(lambda: f.read(4096), b""):
+                sha256_hash.update(byte_block)
+        return sha256_hash.hexdigest()
+    except (PermissionError, OSError):
+        return None
+
+def scan_directory(path):
+    """Scans a directory for files and checks them against signatures."""
+    print(f"--- Starting Scan: {path} ---")
+    
+    for root, dirs, files in os.walk(path):
+        for file in files:
+            file_path = os.path.join(root, file)
+            file_hash = calculate_sha256(file_path)
+            
+            if file_hash in MALWARE_SIGNATURES:
+                print(f"[!] WARNING: Potential threat detected: {file_path}")
+            else:
+                # Basic heuristic: Flagging specific suspicious extensions in sensitive folders
+                if file.endswith((".exe", ".sh", ".bat")) and "Downloads" in file_path:
+                    print(f"[*] Flagged for review: {file_path} (Suspicious extension)")
+
+    print("--- Scan Complete ---")
+
+# Usage: Change '.' to the directory you want to scan
+scan_directory('./test_folder')
